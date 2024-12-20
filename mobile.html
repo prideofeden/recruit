@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽卡模拟</title>
+    <style>
+        #single-draw {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            border: 2px solid #fff;
+            border-radius: 25px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #single-draw:hover {
+            background-color: #007BFF;
+        }
+        #ten-draws {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            border: 2px solid #fff;
+            border-radius: 25px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #ten-draws:hover {
+            background-color: #007BFF;
+        }
+        #two-hundred-draws {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            border: 2px solid #fff;
+            border-radius: 25px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #two-hundred-draws:hover {
+            background-color: #007BFF;
+        }
+        a.button {
+            line-height: 2;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            border: 2px solid #fff;
+            border-radius: 25px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        a.button:hover {
+            background-color: #007BFF;
+        }
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .card-container img {
+            max-width: 20px;
+            height: auto;
+        }
+        img {
+            max-width: 20px;
+        }
+        .statistics {
+            margin-top: 20px;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+        }
+        .popup h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .popup button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .open-app-btn {
+            background-color: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+        }
+        .close-btn {
+            background-color: #D9534F;
+            color: #fff;
+            cursor: pointer;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h1>抽卡模拟</h1>
+    <p>抽卡数量：<span id="draw-count">0</span></p>
+    <p><img src="1.png" alt="一星">R卡数量：<span id="one-star-count">0</span><span id="one-star-percentage"></span></p>
+    <p><img src="2.png" alt="二星">SR卡数量：<span id="two-stars-count">0</span><span id="two-stars-percentage"></span></p>
+    <p><img src="3.png" alt="三星">SSR卡非up数量：<span id="three-stars-count">0</span><span id="three-stars-percentage"></span></p>
+    <p><img src="4.png" alt="三星up">SSR卡up数量：<span id="four-stars-count">0</span><span id="four-stars-percentage"></span></p>
+    <p><img src="5.png" alt="闪光三星">闪光SSR卡非up数量：<span id="flash-three-stars-count">0</span><span id="flash-three-stars-percentage"></span></p>
+    <p><img src="6.png" alt="闪光三星up">闪光SSR卡up数量：<span id="flash-four-stars-count">0</span><span id="flash-four-stars-percentage"></span></p>
+    <div class="statistics">
+        <button id="single-draw">招募1次</button>
+        <button id="ten-draws">招募10次</button>
+        <button id="two-hundred-draws">招募180次</button>
+        <a href="index.html" class="button">重置</a>
+    </div>
+    <a href="javascript:void(0);" class="button" id="popup-trigger">前往记忆翻牌</a>
+    <div class="card-container"></div>
+    <div class="overlay" id="overlay"></div>
+    <div class="popup" id="popup">
+        <h2>该功能需在App内进入</h2>
+        <button class="open-app-btn" id="open-app">打开App</button>
+        <button class="close-btn" id="close-popup">返回</button>
+    </div>
+
+    <script>
+        let drawCount = 0;
+        let starsDrawn = {
+            oneStar: 0,
+            twoStars: 0,
+            threeStars: 0,
+            fourStars: 0,
+            flashThreeStars: 0,
+            flashFourStars: 0
+        };
+        let drawnCards = [];
+
+        function updateStatistics() {
+            const totalDrawn = drawCount;
+            const stats = [
+                { id: 'one-star', count: starsDrawn.oneStar },
+                { id: 'two-stars', count: starsDrawn.twoStars },
+                { id: 'three-stars', count: starsDrawn.threeStars },
+                { id: 'four-stars', count: starsDrawn.fourStars },
+                { id: 'flash-three-stars', count: starsDrawn.flashThreeStars },
+                { id: 'flash-four-stars', count: starsDrawn.flashFourStars }
+            ];
+
+            stats.forEach(stat => {
+                const percentage = ((stat.count / totalDrawn) * 100).toFixed(2);
+                document.getElementById(`${stat.id}-count`).textContent = stat.count;
+                document.getElementById(`${stat.id}-percentage`).textContent = `(${percentage}%)`;
+            });
+        }
+
+        function drawCard() {
+            const randomNumber = Math.random() * 100;
+            let cardImage = '';
+
+            if (randomNumber < 80) {
+                cardImage = '1.png';
+                starsDrawn.oneStar++;
+            } else if (randomNumber < 97) {
+                cardImage = '2.png';
+                starsDrawn.twoStars++;
+            } else if (randomNumber < 98.5) {
+                cardImage = '3.png';
+                if (Math.random() < 0.02) {
+                    cardImage = '5.png';
+                    starsDrawn.flashThreeStars++;
+                } else {
+                    starsDrawn.threeStars++;
+                }
+            } else {
+                cardImage = '4.png';
+                if (Math.random() < 0.02) {
+                    cardImage = '6.png';
+                    starsDrawn.flashFourStars++;
+                } else {
+                    starsDrawn.fourStars++;
+                }
+            }
+
+            drawnCards.push(cardImage);
+
+            const cardContainer = document.querySelector('.card-container');
+            const cardImg = document.createElement('img');
+            cardImg.src = cardImage;
+            cardContainer.appendChild(cardImg);
+
+            drawCount++;
+            document.getElementById('draw-count').textContent = drawCount;
+
+            updateStatistics();
+        }
+
+        document.getElementById('single-draw').addEventListener('click', drawCard);
+        document.getElementById('ten-draws').addEventListener('click', function() {
+            for (let i = 0; i < 10; i++) {
+                drawCard();
+            }
+        });
+        document.getElementById('two-hundred-draws').addEventListener('click', function() {
+            for (let i = 0; i < 180; i++) {
+                drawCard();
+            }
+        });
+
+        const popupTrigger = document.getElementById('popup-trigger');
+        const popup = document.getElementById('popup');
+        const openAppButton = document.getElementById('open-app');
+        const closePopup = document.getElementById('close-popup');
+        const overlay = document.getElementById('overlay');
+
+        popupTrigger.addEventListener('click', function () {
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        });
+        
+        openAppButton.addEventListener('click', function () {
+            const deepLink = 'prideofeden://recruit';
+            window.location.href = deepLink;
+            setTimeout(function () {
+                window.location.href = '伊甸园的骄傲.apk';
+            }, 1000);
+        });
+
+        closePopup.addEventListener('click', function () {
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+        });
+
+        overlay.addEventListener('click', function () {
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
